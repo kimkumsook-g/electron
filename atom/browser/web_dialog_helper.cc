@@ -46,13 +46,13 @@ class FileSelectHelper : public base::RefCounted<FileSelectHelper>,
   }
 
   void ShowOpenDialog(const file_dialog::DialogSettings& settings) {
-    // auto callback = base::Bind(&FileSelectHelper::OnOpenDialogDone, this);
-    // file_dialog::ShowOpenDialog(settings, callback);
+    auto callback = base::Bind(&FileSelectHelper::OnOpenDialogDone, this);
+    file_dialog::ShowOpenDialog(settings, callback);
   }
 
   void ShowSaveDialog(const file_dialog::DialogSettings& settings) {
-    // auto callback = base::Bind(&FileSelectHelper::OnSaveDialogDone, this);
-    // file_dialog::ShowSaveDialog(settings, callback);
+    auto callback = base::Bind(&FileSelectHelper::OnSaveDialogDone, this);
+    file_dialog::ShowSaveDialog(settings, callback);
   }
 
  private:

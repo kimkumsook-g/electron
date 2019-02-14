@@ -209,7 +209,7 @@ static void ApplySettings(IFileDialog* dialog, const DialogSettings& settings) {
 bool ShowOpenDialogSync(const DialogSettings& settings,
                         std::vector<base::FilePath>* paths) {
   ATL::CComPtr<IFileOpenDialog> file_open_dialog;
-  HRESULT hr = file_open_dialog.CoCreateInsstance(CLSID_FileOpenDialog);
+  HRESULT hr = file_open_dialog.CoCreateInstance(CLSID_FileOpenDialog);
 
   if (FAILED(hr))
     return false;
