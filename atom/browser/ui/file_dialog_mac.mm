@@ -268,8 +268,8 @@ void ReadDialogPaths(NSOpenPanel* dialog, std::vector<base::FilePath>* paths) {
 
 }  // namespace
 
-bool ShowOpenDialog(const DialogSettings& settings,
-                    std::vector<base::FilePath>* paths) {
+bool ShowOpenDialogSync(const DialogSettings& settings,
+                        std::vector<base::FilePath>* paths) {
   DCHECK(paths);
   NSOpenPanel* dialog = [NSOpenPanel openPanel];
 
@@ -287,53 +287,56 @@ bool ShowOpenDialog(const DialogSettings& settings,
 void OpenDialogCompletion(int chosen,
                           NSOpenPanel* dialog,
                           const DialogSettings& settings,
-                          const OpenDialogCallback& callback) {
+                          scoped_refptr<atom::util::Promise> promise) {
+  mate::Dictionary dict = mate::Dictionary::CreateEmpty(promise->isolate());
   if (chosen == NSFileHandlingPanelCancelButton) {
+    dict.Set("canceled", true);
+    dict.Set("filePaths", std::vector<base::FilePath>());
 #if defined(MAS_BUILD)
-    callback.Run(false, std::vector<base::FilePath>(),
-                 std::vector<std::string>());
-#else
-    callback.Run(false, std::vector<base::FilePath>());
+    dict.Set("bookmarks", std::vector<std::string>());
 #endif
+    promise->Resolve(dict.GetHandle());
   } else {
     std::vector<base::FilePath> paths;
+    dict.Set("canceled", false);
 #if defined(MAS_BUILD)
     std::vector<std::string> bookmarks;
-    if (settings.security_scoped_bookmarks) {
+    if (settings.security_scoped_bookmarks)
       ReadDialogPathsWithBookmarks(dialog, &paths, &bookmarks);
-    } else {
+    else
       ReadDialogPaths(dialog, &paths);
-    }
-    callback.Run(true, paths, bookmarks);
+    dict.Set("filePaths", paths);
+    dict.Set("bookmarks", bookmarks);
 #else
     ReadDialogPaths(dialog, &paths);
-    callback.Run(true, paths);
+    dict.Set("filePaths", paths);
 #endif
+    promise->Resolve(dict.GetHandle());
   }
 }
 
 void ShowOpenDialog(const DialogSettings& settings,
-                    const OpenDialogCallback& c) {
+                    scoped_refptr<atom::util::Promise> promise) {
   NSOpenPanel* dialog = [NSOpenPanel openPanel];
 
   SetupDialog(dialog, settings);
   SetupDialogForProperties(dialog, settings.properties);
 
-  // Duplicate the callback object here since c is a reference and gcd would
-  // only store the pointer, by duplication we can force gcd to store a copy.
-  __block OpenDialogCallback callback = c;
+  // // Duplicate the callback object here since c is a reference and gcd would
+  // // only store the pointer, by duplication we can force gcd to store a copy.
+  // __block OpenDialogCallback callback = c;
 
   if (!settings.parent_window || !settings.parent_window->GetNativeWindow() ||
       settings.force_detached) {
     [dialog beginWithCompletionHandler:^(NSInteger chosen) {
-      OpenDialogCompletion(chosen, dialog, settings, callback);
+      OpenDialogCompletion(chosen, dialog, settings, promise);
     }];
   } else {
     NSWindow* window =
         settings.parent_window->GetNativeWindow().GetNativeNSWindow();
     [dialog beginSheetModalForWindow:window
                    completionHandler:^(NSInteger chosen) {
-                     OpenDialogCompletion(chosen, dialog, settings, callback);
+                     OpenDialogCompletion(chosen, dialog, settings, promise);
                    }];
   }
 }

@@ -81,13 +81,22 @@ bool CreateDialogThread(RunState* run_state) {
   return true;
 }
 
+void OnDialogOpened(scoped_refptr<atom::util::Promise> promise,
+                    bool canceled,
+                    std::vector<base::FilePath> paths) {
+  mate::Dictionary dict = mate::Dictionary::CreateEmpty(promise->isolate());
+  dict.Set("canceled", canceled);
+  dict.Set("paths", paths);
+  promise->Resolve(dict.GetHandle());
+}
+
 void RunOpenDialogInNewThread(const RunState& run_state,
                               const DialogSettings& settings,
-                              const OpenDialogCallback& callback) {
+                              scoped_refptr<atom::util::Promise> promise) {
   std::vector<base::FilePath> paths;
-  bool result = ShowOpenDialog(settings, &paths);
-  run_state.ui_task_runner->PostTask(FROM_HERE,
-                                     base::Bind(callback, result, paths));
+  bool result = ShowOpenDialogSync(settings, &paths);
+  run_state.ui_task_runner->PostTask(
+      FROM_HERE, base::Bind(&OnDialogOpened, promise, result, paths));
   run_state.ui_task_runner->DeleteSoon(FROM_HERE, run_state.dialog_thread);
 }
 
@@ -197,10 +206,10 @@ static void ApplySettings(IFileDialog* dialog, const DialogSettings& settings) {
   }
 }
 
-bool ShowOpenDialog(const DialogSettings& settings,
-                    std::vector<base::FilePath>* paths) {
+bool ShowOpenDialogSync(const DialogSettings& settings,
+                        std::vector<base::FilePath>* paths) {
   ATL::CComPtr<IFileOpenDialog> file_open_dialog;
-  HRESULT hr = file_open_dialog.CoCreateInstance(CLSID_FileOpenDialog);
+  HRESULT hr = file_open_dialog.CoCreateInsstance(CLSID_FileOpenDialog);
 
   if (FAILED(hr))
     return false;
@@ -251,16 +260,18 @@ bool ShowOpenDialog(const DialogSettings& settings,
 }
 
 void ShowOpenDialog(const DialogSettings& settings,
-                    const OpenDialogCallback& callback) {
+                    scoped_refptr<atom::util::Promise> promise) {
+  mate::Dictionary dict = mate::Dictionary::CreateEmpty(promise->isolate());
   RunState run_state;
   if (!CreateDialogThread(&run_state)) {
-    callback.Run(false, std::vector<base::FilePath>());
-    return;
+    dict.Set("canceled", true);
+    dict.Set("paths", std::vector<base::FilePath>());
+    promise->Resolve(dict.GetHandle());
+  } else {
+    run_state.dialog_thread->task_runner()->PostTask(
+        FROM_HERE,
+        base::Bind(&RunOpenDialogInNewThread, run_state, settings, promise));
   }
-
-  run_state.dialog_thread->task_runner()->PostTask(
-      FROM_HERE,
-      base::Bind(&RunOpenDialogInNewThread, run_state, settings, callback));
 }
 
 bool ShowSaveDialog(const DialogSettings& settings, base::FilePath* path) {
