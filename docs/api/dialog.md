@@ -52,8 +52,6 @@ The `dialog` module has the following methods:
     boxes.
   * `securityScopedBookmarks` Boolean (optional) _masOS_ _mas_ - Create [security scoped bookmarks](https://developer.apple.com/library/content/documentation/Security/Conceptual/AppSandboxDesignGuide/AppSandboxInDepth/AppSandboxInDepth.html#//apple_ref/doc/uid/TP40011183-CH3-SW16) when packaged for the Mac App Store.
 
-Returns `undefined`.
-
 The `browserWindow` argument allows the dialog to attach itself to a parent window, making it modal.
 
 The `filters` specifies an array of file types that can be displayed or
@@ -78,6 +76,12 @@ The `extensions` array should contain extensions without wildcards or dots (e.g.
 and a directory selector, so if you set `properties` to
 `['openFile', 'openDirectory']` on these platforms, a directory selector will be
 shown.
+
+```js
+  dialog.showOpenDialogSync(mainWindow, {
+    properties: ['openFile', 'openDirectory']
+  })
+```
 
 ### `dialog.showOpenDialog([browserWindow, ]options)`
 
@@ -139,6 +143,17 @@ The `extensions` array should contain extensions without wildcards or dots (e.g.
 and a directory selector, so if you set `properties` to
 `['openFile', 'openDirectory']` on these platforms, a directory selector will be
 shown.
+
+```js
+  dialog.showOpenDialog(mainWindow, {
+    properties: ['openFile', 'openDirectory']
+  }).then(result => {
+    console.log(result.canceled)
+    console.log(result.filePaths)
+  }).catch(err => {
+    console.log(err)
+  })
+```
 
 ### `dialog.showSaveDialog([browserWindow, ]options[, callback])`
 
