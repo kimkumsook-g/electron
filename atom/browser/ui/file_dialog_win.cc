@@ -86,7 +86,7 @@ void OnDialogOpened(scoped_refptr<atom::util::Promise> promise,
                     std::vector<base::FilePath> paths) {
   mate::Dictionary dict = mate::Dictionary::CreateEmpty(promise->isolate());
   dict.Set("canceled", canceled);
-  dict.Set("paths", paths);
+  dict.Set("filePaths", paths);
   promise->Resolve(dict.GetHandle());
 }
 
@@ -265,7 +265,7 @@ void ShowOpenDialog(const DialogSettings& settings,
   RunState run_state;
   if (!CreateDialogThread(&run_state)) {
     dict.Set("canceled", true);
-    dict.Set("paths", std::vector<base::FilePath>());
+    dict.Set("filePaths", std::vector<base::FilePath>());
     promise->Resolve(dict.GetHandle());
   } else {
     run_state.dialog_thread->task_runner()->PostTask(
