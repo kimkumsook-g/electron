@@ -46,6 +46,16 @@ class Promise : public base::RefCounted<Promise> {
     return GetInner()->Reject(GetContext(), v8::Undefined(isolate()));
   }
 
+  template <typename ReturnType, typename... ArgTypes>
+  v8::MaybeLocal<v8::Promise> Then(base::Callback<ReturnType(ArgTypes...)> cb) {
+    v8::HandleScope handle_scope(isolate());
+    v8::Context::Scope context_scope(
+        v8::Local<v8::Context>::New(isolate(), GetContext()));
+    v8::Local<v8::Value> value = mate::ConvertToV8(isolate(), cb);
+    v8::Local<v8::Function> handler = v8::Local<v8::Function>::Cast(value);
+    return GetHandle()->Then(GetContext(), handler);
+  }
+
   // Promise resolution is a microtask
   // We use the MicrotasksRunner to trigger the running of pending microtasks
   template <typename T>
